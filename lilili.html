@@ -239,9 +239,42 @@
       box-shadow: 0 15px 30px rgba(0,0,0,0.2);
     }
 
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
     .modal-card h2 {
       color: #2e7d32;
-      margin-bottom: 15px;
+      font-size: 1.4rem;
+    }
+
+    .live-badge {
+      background: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #81c784;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #4caf50;
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
     }
 
     .pw-input {
@@ -289,6 +322,12 @@
       border-radius: 16px;
       position: relative;
       text-align: left;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .story-time {
@@ -388,7 +427,13 @@
   <!-- 관리자 모달 -->
   <div class="modal-overlay" id="adminModal">
     <div class="modal-card">
-      <h2>📜 속마음 고자질 목록</h2>
+      <div class="modal-header">
+        <h2>📜 속마음 고자질 목록</h2>
+        <div class="live-badge">
+          <span class="live-dot"></span>
+          실시간 연동 중
+        </div>
+      </div>
       
       <div class="admin-actions">
         <button class="btn btn-pdf" onclick="exportToPDF()">📄 PDF 출력 / 저장</button>
@@ -432,6 +477,9 @@
       stories.unshift(newStory);
       localStorage.setItem('lily_bamboo_stories', JSON.stringify(stories));
 
+      // 다른 탭/창 및 현재 창의 관리자 페이지에 실시간 반영 알림
+      window.dispatchEvent(new Event('storage'));
+
       storyText.value = '';
       showToast();
     });
@@ -470,7 +518,7 @@
       }
     }
 
-    // 4. 관리자 페이지 동작
+    // 4. 관리자 페이지 동작 및 실시간 업로드 감지
     function openAdminModal() {
       renderStories();
       adminModal.classList.add('active');
@@ -479,6 +527,13 @@
     function closeAdminModal() {
       adminModal.classList.remove('active');
     }
+
+    // 실시간 동기화 이벤트 리스너 (동일 창 및 다른 브라우저 탭 간 실시간 업로드 감지)
+    window.addEventListener('storage', () => {
+      if (adminModal.classList.contains('active')) {
+        renderStories();
+      }
+    });
 
     function renderStories() {
       const stories = JSON.parse(localStorage.getItem('lily_bamboo_stories') || '[]');
@@ -506,13 +561,13 @@
       let stories = JSON.parse(localStorage.getItem('lily_bamboo_stories') || '[]');
       stories = stories.filter(s => s.id !== id);
       localStorage.setItem('lily_bamboo_stories', JSON.stringify(stories));
-      renderStories();
+      window.dispatchEvent(new Event('storage'));
     }
 
     function clearAllStories() {
       if (!confirm('모든 사연을 삭제하시겠습니까?')) return;
       localStorage.removeItem('lily_bamboo_stories');
-      renderStories();
+      window.dispatchEvent(new Event('storage'));
     }
 
     function escapeHtml(text) {
